@@ -4,8 +4,9 @@ import { Department, DepartmentRequest } from '../types/department.types';
 const BASE = '/departments';
 
 export const departmentApi = {
-    getAll: async (): Promise<Department[]> => {
-        const res = await axiosInstance.get<Department[]>(BASE);
+    getAll: async (tenantId?: string): Promise<Department[]> => {
+        const params = tenantId ? `?tenantId=${tenantId}` : '';
+        const res = await axiosInstance.get<Department[]>(`${BASE}${params}`);
         return res.data;
     },
     create: async (data: DepartmentRequest): Promise<Department> => {

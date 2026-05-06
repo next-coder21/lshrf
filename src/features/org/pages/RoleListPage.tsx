@@ -45,9 +45,13 @@ export const RoleListPage = () => {
     const [deptForm, setDeptForm] = useState<DepartmentRequest>({ name: '', description: '', headUserId: null });
     const [deptSaving, setDeptSaving] = useState(false);
 
-    // ─── Load roles ────────────────────────────────────────────────
+    // ─── Load tenants once, auto-select first ─────────────────────
     useEffect(() => {
         if (isSuperAdmin) loadTenants();
+    }, []);
+
+    // ─── Reload roles whenever selected org changes ────────────────
+    useEffect(() => {
         loadRoles();
     }, [selectedTenantId]);
 
@@ -55,12 +59,16 @@ export const RoleListPage = () => {
     useEffect(() => {
         if (activeTab === 'departments') {
             loadDepartments();
-            userApi.getAll().then(setAvailableUsers).catch(() => {});
+            userApi.getAll(undefined, selectedTenantId || undefined).then(setAvailableUsers).catch(() => {});
         }
-    }, [activeTab]);
+    }, [activeTab, selectedTenantId]);
 
     const loadTenants = async () => {
-        try { setTenants(await tenantApi.getAll() || []); } catch {}
+        try {
+            const data = await tenantApi.getAll() || [];
+            setTenants(data);
+            if (data.length > 0) setSelectedTenantId(data[0].id);
+        } catch {}
     };
 
     const loadRoles = async () => {
@@ -83,7 +91,9 @@ export const RoleListPage = () => {
     const loadDepartments = async () => {
         try {
             setDeptsLoading(true);
-            setDepartments(await departmentApi.getAll());
+            const all = await departmentApi.getAll(selectedTenantId || undefined);
+            // client-side filter as safety net when backend doesn't support param
+            setDepartments(selectedTenantId ? all.filter(d => d.tenantId === selectedTenantId) : all);
         } catch {
             toast.error('Failed to load departments');
         } finally {
@@ -163,7 +173,7 @@ export const RoleListPage = () => {
     // ─── Department handlers ───────────────────────────────────────
     const openCreateDept = () => {
         setEditingDept(null);
-        setDeptForm({ name: '', description: '', headUserId: null });
+        setDeptForm({ name: '', description: '', headUserId: null, tenantId: selectedTenantId || undefined });
         setIsCreatingDept(true);
     };
 
@@ -213,7 +223,7 @@ export const RoleListPage = () => {
         <div className="p-8 space-y-6 animate-in fade-in duration-500 max-w-[1600px] mx-auto">
 
             {/* Page Header */}
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between gap-4">
                 <div>
                     <h1 className="text-2xl font-black text-gray-900 tracking-tight uppercase">
                         Roles <span className="text-red-600">&</span> Departments
@@ -222,6 +232,18 @@ export const RoleListPage = () => {
                         Access Control · Organizational Structure
                     </p>
                 </div>
+                {isSuperAdmin && (
+                    <div className="flex items-center gap-2">
+                        <Filter className="w-3.5 h-3.5 text-red-500 flex-shrink-0" />
+                        <select
+                            value={selectedTenantId}
+                            onChange={e => setSelectedTenantId(e.target.value)}
+                            className="px-4 py-2.5 bg-white border-2 border-gray-200 rounded-2xl text-xs font-black uppercase tracking-widest text-gray-700 focus:border-red-500 outline-none cursor-pointer min-w-[220px] shadow-sm"
+                        >
+                            {tenants.map((t: any) => <option key={t.id} value={t.id}>{t.name}</option>)}
+                        </select>
+                    </div>
+                )}
             </div>
 
             {/* Tabs */}
@@ -252,23 +274,6 @@ export const RoleListPage = () => {
 
                     {/* Left: Roles list */}
                     <div className="lg:col-span-4 space-y-8">
-                        {isSuperAdmin && (
-                            <div className="space-y-3">
-                                <div className="flex items-center gap-2 px-2">
-                                    <Filter className="w-3.5 h-3.5 text-red-600" />
-                                    <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Filter by Organization</h3>
-                                </div>
-                                <select
-                                    value={selectedTenantId}
-                                    onChange={e => setSelectedTenantId(e.target.value)}
-                                    className="w-full px-5 py-3 rounded-2xl bg-white border border-gray-100 text-[10px] font-black uppercase tracking-widest outline-none shadow-sm focus:border-red-500 transition-all"
-                                >
-                                    <option value="">All Organizations</option>
-                                    {tenants.map((t: any) => <option key={t.id} value={t.id}>{t.name}</option>)}
-                                </select>
-                            </div>
-                        )}
-
                         <div className="space-y-4">
                             <div className="flex items-center justify-between px-2">
                                 <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">System Roles</h3>
@@ -567,6 +572,25 @@ export const RoleListPage = () => {
                                 </div>
 
                                 <div className="p-6 space-y-5">
+                                    {isSuperAdmin && (
+                                        <div>
+                                            <label className={labelCls}>Organization</label>
+                                            <select
+                                                value={deptForm.tenantId || ''}
+                                                onChange={e => {
+                                                    setDeptForm({ ...deptForm, tenantId: e.target.value || undefined, headUserId: null });
+                                                    userApi.getAll(undefined, e.target.value || undefined).then(setAvailableUsers).catch(() => {});
+                                                }}
+                                                className={inputCls}
+                                                required
+                                            >
+                                                <option value="">Select organization...</option>
+                                                {tenants.map((t: any) => (
+                                                    <option key={t.id} value={t.id}>{t.name}</option>
+                                                ))}
+                                            </select>
+                                        </div>
+                                    )}
                                     <div>
                                         <label className={labelCls}>Department Name</label>
                                         <input type="text" required value={deptForm.name}

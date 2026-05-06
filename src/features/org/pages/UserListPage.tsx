@@ -73,6 +73,10 @@ export const UserListPage = () => {
             setUsers(userData);
             setTenants(tenantData);
             setCustomRoles(rolesData.filter(r => r.isCustom));
+            // auto-select first org for SUPER_ADMIN if nothing selected yet
+            if (isSuperAdmin && !selectedTenantId && tenantData.length > 0) {
+                setSelectedTenantId(tenantData[0].id);
+            }
         } catch (error) {
             console.error('Failed to load data:', error);
         } finally {
@@ -268,7 +272,6 @@ export const UserListPage = () => {
                             onChange={(e) => setSelectedTenantId(e.target.value)}
                             className="px-4 py-2.5 bg-white border-2 border-gray-200 rounded-2xl text-sm font-bold text-gray-700 focus:border-red-500 outline-none cursor-pointer min-w-[200px]"
                         >
-                            <option value="">All Organizations</option>
                             {tenants.map(t => (
                                 <option key={t.id} value={t.id}>{t.name}</option>
                             ))}
