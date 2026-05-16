@@ -2,14 +2,19 @@ import { useState, useEffect } from 'react';
 import { useSelector } from 'react-redux';
 import { RootState } from '@/store/store';
 import axiosInstance from '@/lib/api/axiosInstance';
-import { User, Lock, Save, Camera, Mail, Phone, Shield } from 'lucide-react';
+import { User, Lock, Save, Camera, Mail, Phone, Shield, Briefcase, Building2, Calendar, DollarSign, BadgeCheck } from 'lucide-react';
 import clsx from 'clsx';
+import { employeeApi } from '@/features/employees/api/employeeApi';
+import { Employee } from '@/features/employees/types/employee.types';
 
 export const ProfilePage = () => {
     const { user } = useSelector((state: RootState) => state.auth);
     const [loading, setLoading] = useState(false);
     const [success, setSuccess] = useState('');
     const [error, setError] = useState('');
+    const [employeeData, setEmployeeData] = useState<Employee | null>(null);
+
+    const hasPermission = (perm: string) => (user?.permissions || []).includes(perm);
 
     const [formData, setFormData] = useState({
         firstName: '',
@@ -35,6 +40,7 @@ export const ProfilePage = () => {
             }
         };
         if (user?.id) fetchProfile();
+        employeeApi.getMe().then(setEmployeeData);
     }, [user?.id]);
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -218,6 +224,106 @@ export const ProfilePage = () => {
                     </form>
                 </div>
             </div>
+
+            {/* Employee Details Card */}
+            {employeeData && (
+                <div className="mt-8 bg-white p-8 rounded-[2rem] border border-gray-100 shadow-xl">
+                    <h3 className="text-lg font-black text-gray-900 mb-6 flex items-center gap-2">
+                        <BadgeCheck className="w-5 h-5 text-red-600" />
+                        Employee Details
+                    </h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        {/* Employee ID */}
+                        <div className="flex items-center gap-3 p-4 bg-gray-50 rounded-xl">
+                            <div className="bg-white p-2 rounded-lg shadow-sm">
+                                <BadgeCheck className="w-4 h-4 text-red-600" />
+                            </div>
+                            <div>
+                                <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">Employee ID</p>
+                                <p className="text-sm font-black text-gray-800">{employeeData.employeeId}</p>
+                            </div>
+                        </div>
+
+                        {/* Designation */}
+                        <div className="flex items-center gap-3 p-4 bg-gray-50 rounded-xl">
+                            <div className="bg-white p-2 rounded-lg shadow-sm">
+                                <Briefcase className="w-4 h-4 text-orange-600" />
+                            </div>
+                            <div>
+                                <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">Designation</p>
+                                <p className="text-sm font-semibold text-gray-700">{employeeData.designation || '—'}</p>
+                            </div>
+                        </div>
+
+                        {/* Department */}
+                        <div className="flex items-center gap-3 p-4 bg-gray-50 rounded-xl">
+                            <div className="bg-white p-2 rounded-lg shadow-sm">
+                                <Building2 className="w-4 h-4 text-blue-600" />
+                            </div>
+                            <div>
+                                <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">Department</p>
+                                <p className="text-sm font-semibold text-gray-700">{employeeData.department || '—'}</p>
+                            </div>
+                        </div>
+
+                        {/* Employment Type / Status */}
+                        <div className="flex items-center gap-3 p-4 bg-gray-50 rounded-xl">
+                            <div className="bg-white p-2 rounded-lg shadow-sm">
+                                <User className="w-4 h-4 text-purple-600" />
+                            </div>
+                            <div>
+                                <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">Employment Status</p>
+                                <p className="text-sm font-semibold text-gray-700">{employeeData.status || '—'}</p>
+                            </div>
+                        </div>
+
+                        {/* Date of Joining */}
+                        <div className="flex items-center gap-3 p-4 bg-gray-50 rounded-xl">
+                            <div className="bg-white p-2 rounded-lg shadow-sm">
+                                <Calendar className="w-4 h-4 text-emerald-600" />
+                            </div>
+                            <div>
+                                <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">Date of Joining</p>
+                                <p className="text-sm font-semibold text-gray-700">
+                                    {employeeData.dateOfJoining
+                                        ? new Date(employeeData.dateOfJoining).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
+                                        : '—'}
+                                </p>
+                            </div>
+                        </div>
+
+                        {/* Reporting Manager */}
+                        {employeeData.linkedUserName && (
+                            <div className="flex items-center gap-3 p-4 bg-gray-50 rounded-xl">
+                                <div className="bg-white p-2 rounded-lg shadow-sm">
+                                    <Shield className="w-4 h-4 text-gray-600" />
+                                </div>
+                                <div>
+                                    <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">Linked Account</p>
+                                    <p className="text-sm font-semibold text-gray-700">{employeeData.linkedUserName}</p>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Base Salary — only if user has PAYROLL_VIEW */}
+                        {hasPermission('PAYROLL_VIEW') && (
+                            <div className="flex items-center gap-3 p-4 bg-gray-50 rounded-xl">
+                                <div className="bg-white p-2 rounded-lg shadow-sm">
+                                    <DollarSign className="w-4 h-4 text-green-600" />
+                                </div>
+                                <div>
+                                    <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">Base Salary</p>
+                                    <p className="text-sm font-semibold text-gray-700">
+                                        {employeeData.salary != null
+                                            ? new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(employeeData.salary)
+                                            : '—'}
+                                    </p>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

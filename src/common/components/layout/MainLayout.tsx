@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Sidebar } from './Sidebar/Sidebar';
 import { TopBar } from './TopBar/TopBar';
 import { Outlet } from 'react-router-dom';
+import { ErrorBoundary } from '@/common/components/ErrorBoundary';
 
 export const MainLayout = () => {
     const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -12,7 +13,9 @@ export const MainLayout = () => {
             <div className="flex-1 flex flex-col overflow-hidden">
                 <TopBar isOpen={sidebarOpen} toggleSidebar={() => setSidebarOpen(!sidebarOpen)} />
                 <main className="flex-1 overflow-x-hidden overflow-y-auto">
-                    <Outlet />
+                    <ErrorBoundary>
+                        <Outlet />
+                    </ErrorBoundary>
                 </main>
             </div>
         </div>

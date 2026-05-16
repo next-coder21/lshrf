@@ -3,20 +3,28 @@ import { useDispatch, useSelector } from 'react-redux';
 import { fetchReviews, createReview } from '../store/performanceSlice';
 import { fetchEmployees } from '@/features/employees/store/employeeSlice';
 import { RootState, AppDispatch } from '@/store/store';
+import toast from 'react-hot-toast';
 import {
     Trophy, Star,
     TrendingUp, Search,
     Award, Zap, FileText,
-    XCircle
+    XCircle, BarChart3
 } from 'lucide-react';
+import { EmptyState } from '@/common/components/EmptyState';
 import clsx from 'clsx';
 
 export const PerformancePage = () => {
     const dispatch = useDispatch<AppDispatch>();
     const { reviews, loading } = useSelector((state: RootState) => state.performance);
     const { employees } = useSelector((state: RootState) => state.employees);
+    const currentUser = useSelector((state: RootState) => state.auth.user);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
+
+    const canWriteReview = currentUser != null && (
+        ['MANAGER', 'CLIENT_ADMIN', 'ADMIN', 'SUPER_ADMIN'].includes(currentUser.role) ||
+        currentUser.permissions.includes('PERFORMANCE_CREATE')
+    );
 
     // Form State
     const [formData, setFormData] = useState({
@@ -26,7 +34,8 @@ export const PerformancePage = () => {
         feedback: '',
         strengths: '',
         areasOfImprovement: '',
-        reviewPeriod: 'Annual 2026'
+        reviewPeriod: 'Annual 2026',
+        reviewDate: new Date().toISOString().split('T')[0],
     });
 
     useEffect(() => {
@@ -38,15 +47,16 @@ export const PerformancePage = () => {
         e.preventDefault();
         try {
             await dispatch(createReview(formData)).unwrap();
+            toast.success('Performance review submitted');
             setIsModalOpen(false);
             setFormData({
                 employeeId: '', reviewerId: '', rating: 5,
                 feedback: '', strengths: '', areasOfImprovement: '',
-                reviewPeriod: 'Annual 2026'
+                reviewPeriod: 'Annual 2026',
+                reviewDate: new Date().toISOString().split('T')[0],
             });
-            alert('Performance review finalized successfully!');
-        } catch (error: any) {
-            alert(error.message || 'Failed to submit review');
+        } catch (error: unknown) {
+            toast.error(error instanceof Error ? error.message : 'Failed to submit review');
         }
     };
 
@@ -80,13 +90,15 @@ export const PerformancePage = () => {
                     </div>
                 </div>
 
-                <button
-                    onClick={() => setIsModalOpen(true)}
-                    className="flex items-center gap-2 px-8 py-3.5 bg-gray-900 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-gray-800 transition-all shadow-xl hover:shadow-gray-400/30 active:scale-95"
-                >
-                    <Star className="w-4 h-4 fill-white" />
-                    Publish Review
-                </button>
+                {canWriteReview && (
+                    <button
+                        onClick={() => setIsModalOpen(true)}
+                        className="flex items-center gap-2 px-8 py-3.5 bg-gray-900 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-gray-800 transition-all shadow-xl hover:shadow-gray-400/30 active:scale-95"
+                    >
+                        <Star className="w-4 h-4 fill-white" />
+                        Write Review
+                    </button>
+                )}
             </div>
 
             {/* Performance Analytics */}
@@ -179,11 +191,8 @@ export const PerformancePage = () => {
                                 [1, 2, 3, 4, 5].map(i => <tr key={i} className="animate-pulse h-24 bg-gray-50/10" />)
                             ) : filteredReviews.length === 0 ? (
                                 <tr>
-                                    <td colSpan={6} className="px-8 py-32 text-center">
-                                        <div className="flex flex-col items-center gap-4 grayscale opacity-20">
-                                            <Trophy className="w-16 h-16 text-gray-900" />
-                                            <p className="text-[10px] font-black uppercase tracking-widest leading-relaxed">No Appraisal History Available</p>
-                                        </div>
+                                    <td colSpan={6}>
+                                        <EmptyState icon={BarChart3} title="No performance reviews" description="Write a review to get started" />
                                     </td>
                                 </tr>
                             ) : (
@@ -238,8 +247,8 @@ export const PerformancePage = () => {
                 </div>
             </div>
 
-            {/* Appraisal Modal */}
-            {isModalOpen && (
+            {/* Appraisal Modal — only rendered for roles with write access */}
+            {isModalOpen && canWriteReview && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
                     <div className="absolute inset-0 bg-gray-900/60 backdrop-blur-sm" onClick={() => setIsModalOpen(false)} />
                     <div className="relative bg-white w-full max-w-2xl rounded-[3.5rem] shadow-2xl overflow-hidden animate-in zoom-in duration-300">
@@ -285,6 +294,29 @@ export const PerformancePage = () => {
                                                 </button>
                                             ))}
                                         </div>
+                                    </div>
+                                </div>
+
+                                <div className="grid grid-cols-2 gap-6">
+                                    <div className="space-y-2">
+                                        <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest pl-2">Review Period</label>
+                                        <input
+                                            type="text"
+                                            className="w-full bg-gray-50 border border-gray-100 rounded-2xl py-4 px-6 text-sm font-bold focus:ring-2 focus:ring-red-500/20"
+                                            placeholder="e.g. Annual 2026"
+                                            value={formData.reviewPeriod}
+                                            onChange={e => setFormData({ ...formData, reviewPeriod: e.target.value })}
+                                        />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest pl-2">Review Date</label>
+                                        <input
+                                            type="date"
+                                            required
+                                            className="w-full bg-gray-50 border border-gray-100 rounded-2xl py-4 px-6 text-sm font-bold focus:ring-2 focus:ring-red-500/20"
+                                            value={formData.reviewDate}
+                                            onChange={e => setFormData({ ...formData, reviewDate: e.target.value })}
+                                        />
                                     </div>
                                 </div>
 

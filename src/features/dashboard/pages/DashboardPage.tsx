@@ -17,6 +17,7 @@ import {
     PieChart,
     Gift
 } from 'lucide-react';
+import { SuperAdminDashboard } from '../components/SuperAdminDashboard';
 import clsx from 'clsx';
 import { useState, useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
@@ -118,6 +119,10 @@ export const DashboardPage = () => {
             setActionLoading(false);
         }
     };
+
+    if (user?.role === 'SUPER_ADMIN') {
+        return <SuperAdminDashboard />;
+    }
 
     if (loading) {
         return (

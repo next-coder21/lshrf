@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useDispatch } from 'react-redux';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import axiosInstance from '@/lib/api/axiosInstance';
 import { setCredentials } from '../store/authSlice';
 import { Mail, Eye, EyeOff } from 'lucide-react';
@@ -21,11 +21,12 @@ export const LoginPage = () => {
 
         try {
             const response = await axiosInstance.post('/auth/login', { email, password });
-            const { token, userId, email: userEmail, role, firstName, lastName, tenantId, permissions } = response.data;
+            const { token, refreshToken, userId, email: userEmail, role, firstName, lastName, tenantId, permissions } = response.data;
 
             dispatch(setCredentials({
                 user: { id: userId, email: userEmail, role, firstName, lastName, tenantId, permissions: permissions || [] },
-                token
+                token,
+                refreshToken,
             }));
             navigate('/');
         } catch (err: any) {
@@ -45,7 +46,7 @@ export const LoginPage = () => {
                     {/* Logo & Header */}
                     <div className="mb-12">
                         <div className="flex items-center gap-3 mb-6">
-                            <img src="/logo.png" alt="LisHR Logo" className="w-12 h-12 object-contain" />
+                            <div className="w-12 h-12 bg-gray-900 rounded-xl flex items-center justify-center text-white font-black text-lg">L</div>
                             <span className="text-2xl font-bold text-gray-900">LisHR</span>
                         </div>
                         <h1 className="text-4xl font-bold text-gray-900 mb-3">Welcome Back!</h1>
@@ -106,6 +107,9 @@ export const LoginPage = () => {
                                 <input type="checkbox" className="w-4 h-4 rounded border-gray-300 text-red-600 focus:ring-red-500 cursor-pointer" />
                                 <span className="ml-2 text-gray-500 group-hover:text-gray-700 transition-colors">Remember me</span>
                             </label>
+                            <Link to="/forgot-password" className="text-sm font-semibold text-red-600 hover:text-red-700 transition-colors">
+                                Forgot password?
+                            </Link>
                         </div>
 
                         {/* Login Button */}

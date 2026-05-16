@@ -1,6 +1,6 @@
-import { Home, Users, Calendar, FileText, DollarSign, TrendingUp, Settings, Building2, ChevronDown, LayoutGrid, Briefcase, List, Package, Layers, CreditCard, Activity, Shield, Clock, UserCheck } from 'lucide-react';
+import { Home, Users, Calendar, FileText, DollarSign, TrendingUp, Settings, Building2, ChevronDown, LayoutGrid, Briefcase, List, Package, Layers, CreditCard, Activity, Shield, Clock, UserCheck, User } from 'lucide-react';
 import { useState, useMemo } from 'react';
-import { NavLink } from 'react-router-dom';
+import { NavLink, useLocation } from 'react-router-dom';
 import clsx from 'clsx';
 import { useSelector } from 'react-redux';
 import { RootState } from '@/store/store';
@@ -11,12 +11,13 @@ interface SidebarProps {
 }
 
 export const Sidebar = ({ isOpen, toggle }: SidebarProps) => {
-    const [isOrgSetupOpen, setIsOrgSetupOpen] = useState(false);
-    const [isRecruitmentOpen, setIsRecruitmentOpen] = useState(false);
-    const [isPlansOpen, setIsPlansOpen] = useState(false);
-    const [isShiftsOpen, setIsShiftsOpen] = useState(false);
-    const [isLeavesOpen, setIsLeavesOpen] = useState(false);
-    const [isApprovalsOpen, setIsApprovalsOpen] = useState(false);
+    const location = useLocation();
+    const [isOrgSetupOpen, setIsOrgSetupOpen] = useState(() => location.pathname.startsWith('/org'));
+    const [isRecruitmentOpen, setIsRecruitmentOpen] = useState(() => location.pathname.startsWith('/recruitment'));
+    const [isPlansOpen, setIsPlansOpen] = useState(() => location.pathname.startsWith('/plans'));
+    const [isShiftsOpen, setIsShiftsOpen] = useState(() => location.pathname.startsWith('/shifts'));
+    const [isLeavesOpen, setIsLeavesOpen] = useState(() => location.pathname.startsWith('/leaves'));
+    const [isApprovalsOpen, setIsApprovalsOpen] = useState(() => location.pathname.startsWith('/approvals'));
     const { user } = useSelector((state: RootState) => state.auth);
 
     const isSuperAdmin = user?.role === 'SUPER_ADMIN' || user?.role === 'ROLE_SUPER_ADMIN';
@@ -33,6 +34,20 @@ export const Sidebar = ({ isOpen, toggle }: SidebarProps) => {
         const items: any[] = [
             { icon: Home, label: 'Dashboard', path: '/', color: 'from-red-500' },
         ];
+
+        // ----- SELF-SERVICE: always visible to non-super-admin -----
+        if (!isSuperAdmin) {
+            items.push({ icon: User, label: 'My Profile', path: '/profile', color: 'from-blue-500' });
+            if (!hasPermission('ATTENDANCE_VIEW')) {
+                items.push({ icon: Calendar, label: 'My Attendance', path: '/attendance', color: 'from-emerald-500' });
+            }
+            if (!hasPermission('LEAVES_VIEW')) {
+                items.push({ icon: FileText, label: 'My Leaves', path: '/leaves', color: 'from-amber-500' });
+            }
+            if (!hasPermission('PAYROLL_VIEW')) {
+                items.push({ icon: DollarSign, label: 'My Payslips', path: '/payroll', color: 'from-green-600' });
+            }
+        }
 
         // ----- ORG SETUP: Only Super Admin sees this submenu -----
         if (isSuperAdmin) {

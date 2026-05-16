@@ -83,7 +83,6 @@ export const LogoUpload = ({ value, onChange, companyName }: LogoUploadProps) =>
         try {
             const base64 = await compressToBase64(file);
             const sizeKB = Math.round(base64.length / 1024);
-            console.log(`Logo compressed to ${sizeKB}KB`);
             onChange(base64);
         } catch (err) {
             setError('Failed to process image');

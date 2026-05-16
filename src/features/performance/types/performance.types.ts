@@ -23,5 +23,6 @@ export interface PerformanceReviewRequest {
     strengths: string;
     areasOfImprovement: string;
     reviewPeriod: string;
+    reviewDate?: string;
     status?: ReviewStatus;
 }

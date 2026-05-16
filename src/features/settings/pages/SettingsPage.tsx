@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useSelector } from 'react-redux';
 import { RootState } from '@/store/store';
 import axiosInstance from '@/lib/api/axiosInstance';
-import { Settings, Save, Palette, Building, Globe, DollarSign } from 'lucide-react';
+import { Save, Building, Globe, DollarSign, Lock, Eye, EyeOff } from 'lucide-react';
 import clsx from 'clsx';
 
 export const SettingsPage = () => {
@@ -10,7 +10,13 @@ export const SettingsPage = () => {
     const [loading, setLoading] = useState(false);
     const [success, setSuccess] = useState('');
     const [error, setError] = useState('');
-    const [activeTab, setActiveTab] = useState<'general' | 'branding'>('general');
+    const [activeTab, setActiveTab] = useState<'general' | 'branding' | 'security'>('general');
+
+    const [passwordData, setPasswordData] = useState({ currentPassword: '', newPassword: '', confirmPassword: '' });
+    const [showPasswords, setShowPasswords] = useState(false);
+    const [pwLoading, setPwLoading] = useState(false);
+    const [pwSuccess, setPwSuccess] = useState('');
+    const [pwError, setPwError] = useState('');
 
     const [tenantData, setTenantData] = useState({
         id: '',
@@ -63,6 +69,33 @@ export const SettingsPage = () => {
         setTenantData({ ...tenantData, [e.target.name]: e.target.value });
     };
 
+    const handlePasswordChange = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (passwordData.newPassword !== passwordData.confirmPassword) {
+            setPwError('New passwords do not match.');
+            return;
+        }
+        if (passwordData.newPassword.length < 8) {
+            setPwError('Password must be at least 8 characters.');
+            return;
+        }
+        setPwLoading(true);
+        setPwError('');
+        setPwSuccess('');
+        try {
+            await axiosInstance.patch('/users/me/password', {
+                currentPassword: passwordData.currentPassword,
+                newPassword: passwordData.newPassword,
+            });
+            setPwSuccess('Password changed successfully.');
+            setPasswordData({ currentPassword: '', newPassword: '', confirmPassword: '' });
+        } catch (err: any) {
+            setPwError(err.response?.data?.message || 'Failed to change password.');
+        } finally {
+            setPwLoading(false);
+        }
+    };
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setLoading(true);
@@ -109,6 +142,15 @@ export const SettingsPage = () => {
                         )}
                     >
                         Branding & Appearance
+                    </button>
+                    <button
+                        onClick={() => setActiveTab('security')}
+                        className={clsx(
+                            "px-8 py-5 text-sm font-bold uppercase tracking-wider transition-all",
+                            activeTab === 'security' ? "text-red-600 bg-red-50/50 border-b-2 border-red-600" : "text-gray-400 hover:text-gray-900 hover:bg-gray-50"
+                        )}
+                    >
+                        Security
                     </button>
                 </div>
 
@@ -227,20 +269,84 @@ export const SettingsPage = () => {
                             </div>
                         )}
 
-                        <div className="mt-8 pt-6 border-t border-gray-50 flex justify-end">
-                            <button
-                                type="submit"
-                                disabled={loading}
-                                className={clsx(
-                                    "flex items-center gap-2 px-8 py-3 rounded-xl font-bold uppercase tracking-widest text-xs text-white shadow-lg transition-all active:scale-95",
-                                    loading ? "bg-gray-400 cursor-not-allowed" : "bg-gradient-to-r from-red-600 to-orange-600 hover:shadow-red-500/30 hover:-translate-y-0.5"
-                                )}
-                            >
-                                <Save className="w-4 h-4" />
-                                {loading ? 'Saving Changes...' : 'Save Configuration'}
-                            </button>
-                        </div>
+                        {activeTab !== 'security' && (
+                            <div className="mt-8 pt-6 border-t border-gray-50 flex justify-end">
+                                <button
+                                    type="submit"
+                                    disabled={loading}
+                                    className={clsx(
+                                        "flex items-center gap-2 px-8 py-3 rounded-xl font-bold uppercase tracking-widest text-xs text-white shadow-lg transition-all active:scale-95",
+                                        loading ? "bg-gray-400 cursor-not-allowed" : "bg-gradient-to-r from-red-600 to-orange-600 hover:shadow-red-500/30 hover:-translate-y-0.5"
+                                    )}
+                                >
+                                    <Save className="w-4 h-4" />
+                                    {loading ? 'Saving Changes...' : 'Save Configuration'}
+                                </button>
+                            </div>
+                        )}
                     </form>
+
+                    {activeTab === 'security' && (
+                        <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
+                            <div className="flex items-center gap-3 mb-4">
+                                <Lock className="w-5 h-5 text-red-500" />
+                                <h2 className="text-sm font-bold uppercase tracking-widest text-gray-700">Change Password</h2>
+                            </div>
+
+                            {pwSuccess && (
+                                <div className="mb-4 bg-green-50 text-green-600 px-4 py-3 rounded-xl text-xs font-bold border border-green-100 flex items-center gap-2">
+                                    <Save className="w-4 h-4" /> {pwSuccess}
+                                </div>
+                            )}
+                            {pwError && (
+                                <div className="mb-4 bg-red-50 text-red-600 px-4 py-3 rounded-xl text-xs font-bold border border-red-100">
+                                    {pwError}
+                                </div>
+                            )}
+
+                            <form onSubmit={handlePasswordChange} className="space-y-4 max-w-md">
+                                {(['currentPassword', 'newPassword', 'confirmPassword'] as const).map((field) => (
+                                    <div key={field} className="space-y-1">
+                                        <label className="text-xs font-bold text-gray-400 uppercase tracking-wider ml-1">
+                                            {field === 'currentPassword' ? 'Current Password' : field === 'newPassword' ? 'New Password' : 'Confirm New Password'}
+                                        </label>
+                                        <div className="relative">
+                                            <input
+                                                type={showPasswords ? 'text' : 'password'}
+                                                value={passwordData[field]}
+                                                onChange={(e) => setPasswordData({ ...passwordData, [field]: e.target.value })}
+                                                className="w-full bg-gray-50 border border-gray-100 rounded-xl px-4 py-3 pr-10 text-sm font-semibold text-gray-700 outline-none focus:ring-2 focus:ring-red-100 transition-all"
+                                                required
+                                            />
+                                            {field === 'confirmPassword' && (
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setShowPasswords(!showPasswords)}
+                                                    className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600"
+                                                >
+                                                    {showPasswords ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                                                </button>
+                                            )}
+                                        </div>
+                                    </div>
+                                ))}
+
+                                <div className="pt-4">
+                                    <button
+                                        type="submit"
+                                        disabled={pwLoading}
+                                        className={clsx(
+                                            "flex items-center gap-2 px-8 py-3 rounded-xl font-bold uppercase tracking-widest text-xs text-white shadow-lg transition-all active:scale-95",
+                                            pwLoading ? "bg-gray-400 cursor-not-allowed" : "bg-gradient-to-r from-red-600 to-orange-600 hover:shadow-red-500/30 hover:-translate-y-0.5"
+                                        )}
+                                    >
+                                        <Lock className="w-4 h-4" />
+                                        {pwLoading ? 'Updating...' : 'Update Password'}
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    )}
                 </div>
             </div>
         </div>

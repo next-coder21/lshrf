@@ -34,6 +34,13 @@ export interface LeaveTypeConfig {
     isActive: boolean;
 }
 
+export interface LeaveBalance {
+    leaveTypeName: string;
+    totalDays: number;
+    usedDays: number;
+    remainingDays: number;
+}
+
 export interface CreateLeaveTypeRequest {
     name: string;
     code: string;

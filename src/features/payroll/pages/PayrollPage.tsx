@@ -3,6 +3,8 @@ import { useDispatch, useSelector } from 'react-redux';
 import { fetchPayrolls, processPayroll, updatePayrollStatus } from '../store/payrollSlice';
 import { fetchEmployees } from '@/features/employees/store/employeeSlice';
 import { RootState, AppDispatch } from '@/store/store';
+import axiosInstance from '@/lib/api/axiosInstance';
+import toast from 'react-hot-toast';
 import {
     DollarSign, Plus, Download,
     Search, Filter, CreditCard,
@@ -13,6 +15,7 @@ import {
     Banknote, PieChart
 } from 'lucide-react';
 import clsx from 'clsx';
+import { EmptyState } from '@/common/components/EmptyState';
 import { PayrollStatus } from '../types/payroll.types';
 
 export const PayrollPage = () => {
@@ -47,6 +50,7 @@ export const PayrollPage = () => {
         e.preventDefault();
         try {
             await dispatch(processPayroll(formData)).unwrap();
+            toast.success('Payroll processed successfully');
             setIsModalOpen(false);
             setFormData({
                 ...formData,
@@ -56,17 +60,31 @@ export const PayrollPage = () => {
                 deductions: 0,
                 remarks: ''
             });
-            alert('Payroll processed successfully!');
-        } catch (error: any) {
-            alert(error.message || 'Failed to process payroll');
+        } catch (error: unknown) {
+            toast.error(error instanceof Error ? error.message : 'Failed to process payroll');
+        }
+    };
+
+    const handleDownloadPayslip = async (id: string, employeeName: string) => {
+        try {
+            const response = await axiosInstance.get(`/payroll/${id}/payslip`, { responseType: 'blob' });
+            const url = URL.createObjectURL(new Blob([response.data], { type: 'application/pdf' }));
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `payslip-${employeeName.replace(/\s+/g, '-')}.pdf`;
+            a.click();
+            URL.revokeObjectURL(url);
+        } catch {
+            toast.error('Failed to download payslip.');
         }
     };
 
     const handleStatusUpdate = async (id: string, status: PayrollStatus) => {
         try {
             await dispatch(updatePayrollStatus({ id, status })).unwrap();
-        } catch (error: any) {
-            alert(error.message || 'Failed to update status');
+            toast.success(`Status updated to ${status}`);
+        } catch (error: unknown) {
+            toast.error(error instanceof Error ? error.message : 'Failed to update status');
         }
     };
 
@@ -89,7 +107,9 @@ export const PayrollPage = () => {
     };
 
     const filteredPayrolls = payrolls.filter(p =>
-        p.employeeName.toLowerCase().includes(searchTerm.toLowerCase())
+        p.employeeName.toLowerCase().includes(searchTerm.toLowerCase()) &&
+        p.month === filterPeriod.month &&
+        p.year === filterPeriod.year
     );
 
     const totalStats = {
@@ -245,11 +265,8 @@ export const PayrollPage = () => {
                                 ))
                             ) : filteredPayrolls.length === 0 ? (
                                 <tr>
-                                    <td colSpan={7} className="px-8 py-32 text-center">
-                                        <div className="flex flex-col items-center gap-4 grayscale opacity-20">
-                                            <CreditCard className="w-16 h-16 text-gray-900" />
-                                            <p className="text-[10px] font-black uppercase tracking-widest">No financial records found</p>
-                                        </div>
+                                    <td colSpan={7}>
+                                        <EmptyState icon={CreditCard} title="No payroll records found" description="Process payroll to see records for this period" />
                                     </td>
                                 </tr>
                             ) : (
@@ -302,7 +319,11 @@ export const PayrollPage = () => {
                                                         <CheckCircle2 className="w-4 h-4" />
                                                     </button>
                                                 )}
-                                                <button className="p-2.5 bg-gray-50 text-gray-400 rounded-xl hover:bg-gray-900 hover:text-white transition-all active:scale-95 shadow-sm">
+                                                <button
+                                                    onClick={() => handleDownloadPayslip(p.id, p.employeeName)}
+                                                    className="p-2.5 bg-gray-50 text-gray-400 rounded-xl hover:bg-gray-900 hover:text-white transition-all active:scale-95 shadow-sm"
+                                                    title="Download Payslip PDF"
+                                                >
                                                     <Download className="w-4 h-4" />
                                                 </button>
                                             </div>

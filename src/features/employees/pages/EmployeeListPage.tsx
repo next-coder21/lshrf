@@ -6,8 +6,9 @@ import { RootState, AppDispatch } from '@/store/store';
 import {
     Search, Plus, Filter, Edit, Trash2,
     Mail, Phone, Building2, Briefcase, Calendar,
-    Download, Link
+    Download, Link, Users
 } from 'lucide-react';
+import { EmptyState } from '@/common/components/EmptyState';
 import clsx from 'clsx';
 import { Employee, EmployeeRequest } from '../types/employee.types';
 import { EmployeeFormModal } from '../components/EmployeeFormModal';
@@ -247,14 +248,8 @@ export const EmployeeListPage = () => {
                                 ))
                             ) : (
                                 <tr>
-                                    <td colSpan={6} className="px-6 py-12 text-center">
-                                        <div className="flex flex-col items-center gap-2">
-                                            <div className="w-12 h-12 bg-gray-50 rounded-full flex items-center justify-center text-gray-300">
-                                                <Search className="w-6 h-6" />
-                                            </div>
-                                            <p className="text-gray-900 font-black uppercase text-xs">No Personnel Found</p>
-                                            <p className="text-gray-500 text-[10px] font-medium">Try adjusting your search or filters.</p>
-                                        </div>
+                                    <td colSpan={6}>
+                                        <EmptyState icon={Users} title="No employees found" description="Add your first employee to get started" />
                                     </td>
                                 </tr>
                             )}

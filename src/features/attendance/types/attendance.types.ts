@@ -1,5 +1,28 @@
 export type AttendanceStatus = 'PRESENT' | 'ABSENT' | 'LATE' | 'HALF_DAY' | 'ON_LEAVE';
 
+export type RegularizationStatus = 'PENDING' | 'APPROVED' | 'REJECTED';
+
+export interface RegularizationRequest {
+    date: string;
+    requestedCheckIn: string;
+    requestedCheckOut: string;
+    reason: string;
+}
+
+export interface RegularizationResponse {
+    id: string;
+    tenantId: string;
+    employeeId: string;
+    employeeName: string;
+    date: string;
+    requestedCheckIn: string;
+    requestedCheckOut: string;
+    reason: string;
+    status: RegularizationStatus;
+    reviewedBy: string | null;
+    createdAt: string;
+}
+
 export interface Attendance {
     id: string;
     employeeId: string;

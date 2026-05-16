@@ -155,7 +155,6 @@ export const ClientListPage = () => {
             } else {
                 // Creating new - use full onboarding
                 const response = await tenantApi.onboardClient(payload as any);
-                console.log('Client onboarded:', response);
                 toast.success(`Client onboarded! Admin login: ${response.adminEmail}`);
             }
             setIsModalOpen(false);
